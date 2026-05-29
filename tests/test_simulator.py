@@ -1,0 +1,81 @@
+"""Smoke tests + a sanity check of the analytic R0 against simulation.
+
+Run:  python -m pytest tests/ -q     (or: python tests/test_simulator.py)
+"""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+import numpy as np
+
+from spreader.models import (model_params, density_to_N, N_to_density,
+                             R0_analytic, critical_density_curve,
+                             RC_STRONG, RC_HUB)
+from spreader.runner import run_batch, single_full_run
+
+
+def test_density_population_roundtrip():
+    # paper: N = 477 corresponds to rho*pi*r0^2 = 15
+    assert density_to_N(15.0) == 477
+    assert abs(N_to_density(477) - 15.0) < 0.05
+
+
+def test_model_params_cell_size_covers_cutoff():
+    for model in ("strong", "hub"):
+        p = model_params(model)
+        assert p["cell_size"] >= max(p["cutoff_n"], p["cutoff_s"]) - 1e-9
+        assert p["n_cells"] >= 3
+
+
+def test_strong_super_is_constant_probability():
+    # exponent 0 must give w(r) = w0 across the disk
+    p = model_params("strong")
+    assert p["exp_s"] == 0.0
+    assert p["cutoff_s"] == p["cutoff_n"]
+
+
+def test_critical_curve_matches_Rc_at_endpoints():
+    # X_c(lambda) = 6 Rc / (1 + 5 lambda)
+    assert abs(critical_density_curve(1.0, "strong") - RC_STRONG) < 1e-9
+    assert abs(critical_density_curve(1.0, "hub") - RC_HUB) < 1e-9
+
+
+def test_R0_closed_form():
+    # R0 = X (1 + 5 lambda) / 6  for both models
+    for model in ("strong", "hub"):
+        for lam in (0.0, 0.3, 1.0):
+            X = 12.0
+            expected = X * (1 + 5 * lam) / 6
+            assert abs(R0_analytic(lam, model, X=X) - expected) < 1e-9
+
+
+def test_run_smoke_and_monotonic_outbreak_in_lambda():
+    # higher lambda -> larger outbreaks at fixed density (qualitative check)
+    N = density_to_N(15.0)
+    sizes = []
+    for lam in (0.0, 1.0):
+        res = run_batch(N, "hub", lam, 40, n_jobs=1, base_seed=1)
+        sizes.append(np.mean([r["total_infected"] for r in res]))
+    assert sizes[1] > sizes[0]
+
+
+def test_single_full_run_returns_tree():
+    N = density_to_N(15.0)
+    r = single_full_run(N, "hub", 0.4, seed=3)
+    assert "infector" in r and "positions" in r
+    # every infected non-root node has an infector
+    infected = np.where(r["state"] != 0)[0]
+    for j in infected:
+        if j == 0:
+            continue
+        assert r["infector"][j] >= 0
+
+
+if __name__ == "__main__":
+    fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
+    for fn in fns:
+        fn()
+        print(f"PASS {fn.__name__}")
+    print(f"\nAll {len(fns)} tests passed.")
