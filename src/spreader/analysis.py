@@ -74,19 +74,25 @@ def secondary_distribution(results, max_links=20, include_susceptible=False):
 
 
 def critical_density(model, lam, X_grid, n_runs, threshold=0.5,
-                     density_to_N=None, **batch_kw):
+                     density_to_N=None, L=None, **batch_kw):
     """Critical reduced density X_c where percolation probability crosses
     ``threshold``, found by scanning ``X_grid`` and linearly interpolating.
 
     ``density_to_N`` is injected (from models) to avoid a circular import here.
+    ``L`` sets the box side (default = the paper's 10 r0); a larger ``L`` keeps
+    the reduced density fixed while raising N, which shrinks the finite-size
+    shortfall of X_c below the analytic R0=Rc curve.
     Returns (X_c, X_grid, prob_grid).
     """
     from .runner import percolation_probability
     if density_to_N is None:
         from .models import density_to_N as density_to_N
+    if L is None:
+        from .models import BOX_L as L
 
     probs = np.array([
-        percolation_probability(density_to_N(X), model, lam, n_runs, **batch_kw)
+        percolation_probability(density_to_N(X, L=L), model, lam, n_runs,
+                                L=L, **batch_kw)
         for X in X_grid
     ])
     X_grid = np.asarray(X_grid, dtype=float)

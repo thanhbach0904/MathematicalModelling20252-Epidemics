@@ -27,17 +27,19 @@ def main():
     ap.add_argument("--lambdas", type=float, nargs="+",
                     default=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
     ap.add_argument("--jobs", type=int, default=-1)
+    ap.add_argument("--L", type=float, default=10.0,
+                    help="box side L/r0 (paper uses 10; larger reduces finite-size bias)")
     args = ap.parse_args()
 
     X_grid = np.linspace(0.2, args.xmax, args.nx)
 
     for model in ("strong", "hub"):
-        print(f"\n=== {model} model: percolation probability ===")
+        print(f"\n=== {model} model: percolation probability (L={args.L}) ===")
         prob_by_lambda = {}
         for lam in args.lambdas:
             probs = np.array([
-                percolation_probability(density_to_N(X), model, lam,
-                                        args.runs, n_jobs=args.jobs)
+                percolation_probability(density_to_N(X, L=args.L), model, lam,
+                                        args.runs, n_jobs=args.jobs, L=args.L)
                 for X in X_grid
             ])
             prob_by_lambda[lam] = probs
@@ -57,7 +59,7 @@ def main():
         lams, Xcs = [], []
         for lam in lam_points:
             Xc, _, _ = critical_density(model, lam, X_grid, args.runs,
-                                        n_jobs=args.jobs)
+                                        n_jobs=args.jobs, L=args.L)
             if not np.isnan(Xc):
                 lams.append(lam)
                 Xcs.append(Xc)

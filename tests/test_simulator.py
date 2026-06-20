@@ -61,6 +61,23 @@ def test_run_smoke_and_monotonic_outbreak_in_lambda():
     assert sizes[1] > sizes[0]
 
 
+def test_critical_density_lands_on_R0_eq_Rc_curve():
+    # The paper's central percolation claim (Fig. 5): the *measured* critical
+    # density coincides with the analytic R0 = Rc curve. With the bottom->top
+    # (vertical-spanning) percolation criterion the simulated Xc sits on that
+    # curve up to a finite-size (L=10) shortfall, which is largest at lambda=1
+    # (critical N ~ 140). Guard the coincidence within that tolerance.
+    from spreader.analysis import critical_density
+    from spreader.models import critical_density_curve
+
+    X_grid = np.linspace(0.5, 30.0, 25)
+    for model in ("strong", "hub"):
+        Xc, _, _ = critical_density(model, 1.0, X_grid, 150, n_jobs=-1)
+        paper = float(critical_density_curve(1.0, model))
+        assert 0.78 * paper <= Xc <= 1.05 * paper, (
+            f"{model}: simulated Xc={Xc:.2f} off paper Rc={paper:.2f}")
+
+
 def test_single_full_run_returns_tree():
     N = density_to_N(15.0)
     r = single_full_run(N, "hub", 0.4, seed=3)

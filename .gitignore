@@ -219,3 +219,6 @@ __marimo__/
 
 # Project outputs
 results/data
+
+.claude
+docs

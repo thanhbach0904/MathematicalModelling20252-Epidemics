@@ -65,7 +65,9 @@ def main():
     np.savez(B.data("sars_comparison.npz"),
              sars_curve=sars, strong=c_strong, hub=c_hub, none=c_none,
              sars_centres=c_sars, sars_secondary=f_sars)
-    print("Done. NOTE: SARS arrays are digitised approximations (see sars_data.py).")
+    print("Done. NOTE: Fig.14 secondary-case data is CDC-verified for its 0-bin "
+          "and super-spreaders (12/21/23/23/40); the Fig.15 curve is digitised "
+          "from MMWR Fig.1 (see sars_data.py).")
 
 
 if __name__ == "__main__":

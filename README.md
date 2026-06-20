@@ -62,12 +62,26 @@ python scripts/02_propagation_speed.py --runs 300   # Figs 6-7  front distance +
 python scripts/03_epidemic_curve.py --runs 500  # Fig  8    epidemic curve
 python scripts/04_secondary_dist.py --runs 500  # Figs 9-13 networks + link distribution
 python scripts/05_sars_comparison.py --runs 500 # Figs 14-15 SARS Singapore comparison
+python scripts/06_finite_size.py --runs 300     # finite-size: Xc -> Rc as box L grows
 ```
 
 Common flags: `--runs` (MC runs per point), `--jobs` (parallel workers, `-1` =
 all cores), `--density` (`rho*pi*r0^2`), `--lam` (superspreader fraction λ).
 
 The first run pays a one-off Numba compilation cost (a few seconds).
+
+### Live demo
+
+Watch a single epidemic spread and see the paper's numbers build up step by step
+(spatial front + infection tree, the epidemic curve of Fig. 8, the front distance
+`r_f` of Fig. 6, and the running S/I/R counts). Writes an animated GIF to
+`results/figures/`, or pass `--show` for an interactive window.
+
+```powershell
+python scripts/demo_live.py --model hub    --lam 0.4 --density 15
+python scripts/demo_live.py --model strong --lam 0.2 --density 20 --seed 7
+python scripts/demo_live.py --model hub    --lam 0.4 --show
+```
 
 ## Tests
 
@@ -91,8 +105,8 @@ src/spreader/
   analysis.py     percolation prob, critical density, velocity, distributions
   visualize.py    all Matplotlib figures
   sars_data.py    digitised SARS Singapore reference data (Figs 14-15)
-scripts/          00-05 experiments + run_all
-tests/            smoke + analytic checks
+scripts/          00-05 experiments + run_all + demo_live (animation)
+tests/            smoke + analytic + critical-density reproduction checks
 results/          generated figures and data (gitignored)
 ```
 
@@ -105,17 +119,31 @@ results/          generated figures and data (gitignored)
   probability `γ`. With `γ = 1` (the paper's value) this is a generational SIR.
 - **Density parameter.** The control variable is `X = ρπr0²`. With `r0 = 1`,
   `L = 10`, `X = Nπ/100`; e.g. `N = 477 → X ≈ 15`.
-- **Percolation criterion.** A torus has no real "top", so we accumulate an
-  *unwrapped* position along the infection tree (minimum-image displacements)
-  and call a run percolated when the unwrapped cluster **spans the box** — its
-  extent in x or y reaches `L` (the cluster wraps around). This gives the clean
-  sigmoidal transition of Figs. 3-4. The critical density is the 50%-crossing of
-  the percolation probability; in a finite `L=10` box it sits modestly below the
-  mean-field `R0=Rc` curve (Fig. 5), as expected. The same unwrapped tracking
-  lets the front distance `r_f` (Fig. 6) exceed `L/√2`.
-- **SARS data** in `sars_data.py` are hand-digitised approximations of Figs.
-  14-15, sufficient for the qualitative comparison; replace with CDC MMWR
-  52:405-411 / WHO curves for exact values.
+- **Percolation criterion.** The paper seeds at the bottom and calls a run
+  percolated when the infection **reaches the top**. We accumulate an *unwrapped*
+  position along the infection tree (minimum-image displacements) and flag a run
+  when the cluster's **vertical extent** reaches `L` — i.e. it spans bottom→top
+  (the cluster wraps around in `y`). This gives the clean sigmoidal transition of
+  Figs. 3-4. The critical density is the 50%-crossing of the percolation
+  probability; with this criterion the simulated `Xc` lands on the analytic
+  `R0=Rc` curve of Fig. 5 to within a small finite-size shortfall (~10% at `λ=1`,
+  where the critical `N≈140` is smallest), shrinking as `λ` decreases. The same
+  unwrapped tracking lets the front distance `r_f` (Fig. 6) exceed `L/√2`.
+- **SARS data** (`sars_data.py`). The Fig. 14 secondary-case distribution is now
+  **CDC-verified** for its defining features (CDC MMWR 52:405-411): 201 probable
+  cases, 162 with zero transmission, 39 transmitters, and the five super-spreaders
+  at 12/21/23/23/40 — exactly the paper's "12, 21, 23, 40". Only the small middle
+  bins (1-6 secondary cases) are reconstructed (they live only in the MMWR figure
+  image). The Fig. 15 epidemic curve remains a digitised approximation of MMWR
+  Fig. 1 (image-only daily counts), constrained to the right total and peak.
+- **Finite-size / Fig. 5.** With the bottom→top criterion the simulated critical
+  density sits just below the analytic `R0=Rc` curve at `L=10`. `06_finite_size.py`
+  shows that for the **strong** model (where `Rc=4.5` is a continuum-percolation
+  *theory* value) `Xc` climbs toward 4.5 as `L` grows (≈0.90 → 0.97 from L=10→30):
+  the gap is genuine finite size. For the **hub** model `Rc=3.2` is the paper's own
+  measured `Xc` at `L=10` (Eq. 5), not an infinite-system limit, so it does not
+  converge upward. Regenerate Fig. 5 at a larger box with
+  `01_phase_diagram.py --L 30`.
 
 ## Optional Tier-3 (GPU)
 

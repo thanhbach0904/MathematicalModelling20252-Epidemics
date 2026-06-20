@@ -249,6 +249,29 @@ def plot_sars_comparison(model_curves, sars_curve, savepath=None):
     return fig
 
 
+def plot_finite_size(curves, paper_Rc, savepath=None):
+    """Finite-size convergence of the critical density X_c(lambda=1) vs box size L.
+
+    ``curves``   : {model: (L_array, Xc_array)} measured critical densities
+    ``paper_Rc`` : {model: Rc} the paper's Rc reference lines (Eqs. 4-5)
+    """
+    fig, ax = plt.subplots(figsize=(6.5, 4.5))
+    styles = {"strong": ("o", "tab:red", "Strong infectiousness"),
+              "hub": ("s", "tab:blue", "Hub")}
+    for model, (Ls, Xcs) in curves.items():
+        m, c, name = styles[model]
+        ax.plot(Ls, Xcs, m + "-", color=c, label=f"{name} (simulated $X_c$)")
+        ax.axhline(paper_Rc[model], ls="--", color=c, lw=1,
+                   label=f"{name} paper $R_c={paper_Rc[model]:.1f}$")
+    ax.set_xlabel(r"box size $L / r_0$")
+    ax.set_ylabel(r"critical density $\rho_c \pi r_0^2$  ($\lambda=1$)")
+    ax.set_title("Finite-size convergence toward the paper's $R_c$")
+    ax.legend(fontsize=8)
+    fig.tight_layout()
+    _save(fig, savepath)
+    return fig
+
+
 def _save(fig, savepath):
     if savepath:
         fig.savefig(savepath, dpi=150, bbox_inches="tight")

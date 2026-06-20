@@ -38,8 +38,10 @@ def run_single(positions, is_super,
     """Run one full epidemic from individual 0.
 
     Returns a tuple:
-        percolated   : bool   -- cluster spans/wraps the torus: the unwrapped
-                                 extent in x or y reaches perc_threshold (= L)
+        percolated   : bool   -- paper's criterion: the infection seeded at the
+                                 bottom reaches the top, i.e. the cluster's
+                                 unwrapped *vertical* extent reaches
+                                 perc_threshold (= L)
         new_counts   : int64[max_steps]   newly infected per sweep (epidemic curve)
         rf_curve     : float64[max_steps] front distance from origin per sweep
         secondary    : int64[N]           out-degree (people each node infected)
@@ -62,9 +64,7 @@ def run_single(positions, is_super,
     x0 = unwrapped[0, 0]
     y0 = unwrapped[0, 1]
     max_disp = 0.0       # max Euclidean front distance from origin (Fig. 6)
-    # unwrapped bounding box of the infected cluster (spanning detection)
-    uxmin = x0
-    uxmax = x0
+    # unwrapped vertical extent of the infected cluster (bottom->top detection)
     uymin = y0
     uymax = y0
 
@@ -112,10 +112,6 @@ def run_single(positions, is_super,
                                     disp = np.sqrt((ux - x0) ** 2 + (uy - y0) ** 2)
                                     if disp > max_disp:
                                         max_disp = disp
-                                    if ux < uxmin:
-                                        uxmin = ux
-                                    if ux > uxmax:
-                                        uxmax = ux
                                     if uy < uymin:
                                         uymin = uy
                                     if uy > uymax:
@@ -134,9 +130,9 @@ def run_single(positions, is_super,
     for k in range(t, max_steps):
         rf_curve[k] = max_disp
 
-    span = uxmax - uxmin
-    if (uymax - uymin) > span:
-        span = uymax - uymin
-    percolated = span >= perc_threshold
+    # Paper: a run is percolated when infection started at the bottom reaches the
+    # top -- the cluster spans the full height L of the system (vertical extent).
+    vertical_span = uymax - uymin
+    percolated = vertical_span >= perc_threshold
     return (percolated, new_counts, rf_curve, secondary,
             infector, unwrapped, state, t)

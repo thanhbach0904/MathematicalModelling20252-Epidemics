@@ -1,28 +1,55 @@
-"""Approximate SARS reference data for Singapore 2003, used for the Section 4
-comparison plots (Figs. 14-15).
+"""SARS reference data for Singapore 2003 (Section 4 comparison, Figs. 14-15).
 
-NOTE: these arrays are *hand-digitised approximations* read off the figures in
-Fujie & Odagaki (2007), themselves based on CDC MMWR 52:405-411 and WHO epidemic
-curves.  They reproduce the qualitative shape (the long-tailed secondary-case
-distribution with isolated superspreaders at 12/21/23/40, and the single-peaked
-epidemic curve) and are NOT the exact published counts.  Replace with the
-primary source if exact figures are required.
+Primary source: Centers for Disease Control and Prevention, "Severe Acute
+Respiratory Syndrome -- Singapore, 2003", MMWR 52(18):405-411 (the paper's
+ref. [2]).  Full text + figures:
+    https://www.cdc.gov/mmwr/preview/mmwrhtml/mm5218a1.htm
+    https://www.cdc.gov/mmwr/PDF/wk/mm5218.pdf
+
+Provenance of every number below is marked [CDC-VERIFIED] (stated verbatim in
+the MMWR text) or [RECONSTRUCTED] (only available inside the MMWR figure
+*images*, which are not machine-readable; filled to satisfy the verified totals).
 """
 
 import numpy as np
 
+# ---- CDC-VERIFIED headline figures (MMWR 52:405-411, data as of Apr 30 2003) --
+N_PROBABLE_CASES = 201          # [CDC-VERIFIED] total probable SARS cases
+N_NO_TRANSMISSION = 162         # [CDC-VERIFIED] 81% caused no secondary cases
+N_TRANSMITTERS = 39             # [CDC-VERIFIED] 201 - 162
+N_DEATHS = 25                   # [CDC-VERIFIED] case-fatality rate 12.5%
+
+# [CDC-VERIFIED] the five super-spreaders, by *probable* secondary cases each.
+# These are exactly the values the paper plots in Fig. 14 ("12, 21, 23 and 40";
+# note 23 occurs twice). Case 1=21, Case 2=23, Case 3=23, Case 4=40, Case 5=12.
+SUPERSPREADER_SECONDARY = [12, 21, 23, 23, 40]
+
+
 # --- Fig. 14: number of probable cases by their number of direct secondary
-# cases (Feb 25 - Apr 30, 2003).  index = number of secondary cases, value =
-# how many index patients.  Most patients infect nobody; four superspreaders
-# infected 12, 21, 23 and 40 people.
-SARS_SECONDARY_CASES = {
-    0: 162, 1: 22, 2: 8, 3: 4, 4: 2, 5: 1,
-    7: 1, 12: 1, 21: 1, 23: 1, 40: 1,
-}
+# cases.  index = number of secondary cases, value = how many such patients.
+def _build_secondary_cases():
+    dist = {0: N_NO_TRANSMISSION}                       # [CDC-VERIFIED]
+    for k in SUPERSPREADER_SECONDARY:                   # [CDC-VERIFIED]
+        dist[k] = dist.get(k, 0) + 1
+    # [RECONSTRUCTED] the remaining 34 transmitters infect 1..6 people each.
+    # Exact split is only in MMWR Fig. 3 (an image); this reconstruction is
+    # monotone-decreasing and sums to N_TRANSMITTERS - len(superspreaders) = 34.
+    middle = {1: 18, 2: 8, 3: 4, 4: 2, 5: 1, 6: 1}
+    assert sum(middle.values()) == N_TRANSMITTERS - len(SUPERSPREADER_SECONDARY)
+    for k, v in middle.items():
+        dist[k] = dist.get(k, 0) + v
+    return dist
+
+
+SARS_SECONDARY_CASES = _build_secondary_cases()
 
 
 def sars_secondary_distribution(max_links=40, normalise=True):
-    """Return (centres, freq) histogram matching Fig. 14."""
+    """Return (centres, freq) histogram matching Fig. 14.
+
+    The 0-bin and the super-spreader bins (12/21/23/23/40) are CDC-verified;
+    bins 1-6 are reconstructed to match the verified totals (see module docstring).
+    """
     centres = np.arange(0, max_links + 1)
     freq = np.zeros(max_links + 1, dtype=float)
     for k, v in SARS_SECONDARY_CASES.items():
@@ -35,6 +62,11 @@ def sars_secondary_distribution(max_links=40, normalise=True):
 
 # --- Fig. 15: epidemic curve (new probable cases per 6-day step),
 # Feb 13 - Jun 13, 2003.  One time step == 6 days.
+#
+# [RECONSTRUCTED] These per-step counts are digitised from MMWR Fig. 1 (an image;
+# the underlying daily counts are not published as text). The shape (single peak
+# in late March) and total (~N_PROBABLE_CASES) are constrained by the CDC report,
+# but individual bars carry digitisation error -- this curve is NOT exact.
 SARS_EPIDEMIC_CURVE = np.array([
     2, 4, 12, 20, 50, 16, 40, 27, 8, 4, 3, 2,
     1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
