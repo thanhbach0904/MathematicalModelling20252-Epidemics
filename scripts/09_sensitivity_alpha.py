@@ -13,16 +13,19 @@ import argparse
 import csv
 
 import _bootstrap as B
+import numpy as np
 
 from spreader.models import density_to_N
 from spreader.runner import run_batch
 from spreader.analysis import aggregate_metrics, mean_epidemic_curve, mse_vs_sars
+from spreader import visualize as V
 
 MODELS = ["strong", "hub"]
 LAMBDAS = [0.2, 0.4]
 ALPHAS = [1, 2, 3]
 BASELINE_DENSITY = 15.0
 BASELINE_GAMMA = 1.0
+MSE_LAMBDA = 0.2
 
 RAW_COLS = ["model", "lambda", "alpha", "gamma", "rho_pi_r0sq",
             "peak_time_mean", "peak_time_std",
@@ -78,7 +81,15 @@ def main():
             f"alpha={a}: hub={mse_by[('hub', lam)][a]:.1f} "
             f"strong={mse_by[('strong', lam)][a]:.1f}" for a in ALPHAS)
         print(f"  lambda={lam}: robust={robust}  ({detail})")
-    print("Done.")
+
+    alpha_arr = np.array(ALPHAS, dtype=float)
+    mse_by_model = {m: np.array([mse_by[(m, MSE_LAMBDA)][a] for a in ALPHAS]) for m in MODELS}
+    V.plot_mse_curve({m: alpha_arr for m in MODELS}, mse_by_model,
+                     xlabel=r"$\alpha$",
+                     title=f"MSE vs SARS curve, alpha sweep (lambda={MSE_LAMBDA})",
+                     vline=2,
+                     savepath=B.report_fig("fig_s5_mse_vs_alpha.png"))
+    print("Done. See report/figures/fig_s5_mse_vs_alpha.png")
 
 
 if __name__ == "__main__":

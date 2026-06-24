@@ -4,4 +4,4 @@ alpha_sweep,alpha,2.0,all,0.14647096738443488,0.5535004444531867,nan,False
 alpha_sweep,alpha,2.0,all,0.3852339211501019,0.6359575450660128,nan,True
 rn_sweep,rn_r0_ratio (normalized),2.449489742783178,peak_magnitude,nan,0.9928980565420746,nan,False
 rn_sweep,rn_r0_ratio (unnormalized),2.449489742783178,peak_magnitude,nan,1.6741664344433955,nan,False
-lambda_sweep,lambda,0.03,all,0.08200091190841213,0.4180248300771554,nan,True
+lambda_sweep,lambda,0.025,all,0.08560352822647907,0.4670852948669716,nan,True

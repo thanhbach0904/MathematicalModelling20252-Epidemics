@@ -1,7 +1,7 @@
 """Sensitivity analysis: small superspreader fraction lambda (AGENTS.md S6.4).
 
-The paper only explores lambda >= 0.2, but real SARS Singapore had ~3.2%
-documented superspreaders. This sweeps lambda down to 0.01 at the baseline
+The paper only explores lambda >= 0.2, but real SARS Singapore had ~2.5%
+documented superspreaders (5 of 201 probable cases). This sweeps lambda down to 0.01 at the baseline
 density/gamma and finds the minimum lambda at which the hub model fits the
 SARS curve better than the strong model.
 
@@ -22,10 +22,10 @@ from spreader.analysis import aggregate_metrics, mean_epidemic_curve, mse_vs_sar
 from spreader import visualize as V
 
 MODELS = ["strong", "hub"]
-LAMBDAS = [0.01, 0.02, 0.03, 0.05, 0.08, 0.10, 0.15, 0.20]
+LAMBDAS = [0.01, 0.02, 0.025, 0.05, 0.08, 0.10, 0.15, 0.20]
 BASELINE_DENSITY = 15.0
 BASELINE_GAMMA = 1.0
-REALISTIC_LAMBDA = 0.03
+REALISTIC_LAMBDA = 0.025
 
 RAW_COLS = ["model", "lambda", "gamma", "rho_pi_r0sq", "N",
             "peak_time_mean", "peak_time_std",
@@ -111,8 +111,8 @@ def main():
             break
     print(f"\nMinimum lambda threshold (hub MSE < strong MSE): {min_lambda}")
 
-    # S_hat(MSE, lambda) for hub near the realistic SARS estimate (0.03),
-    # using the adjacent grid points (0.02 -> 0.05) since 0.03 isn't itself
+    # S_hat(MSE, lambda) for hub near the realistic SARS estimate (0.025),
+    # using the adjacent grid points (0.02 -> 0.05) since 0.025 isn't itself
     # flanked by +-10% grid points.
     if REALISTIC_LAMBDA in LAMBDAS:
         i = LAMBDAS.index(REALISTIC_LAMBDA)

@@ -147,7 +147,7 @@ def main():
     for r in lam_raw:
         r["__param__"] = r["lambda"]
     lambdas_sorted = sorted({r["lambda"] for r in lam_raw})
-    i = lambdas_sorted.index(0.03) if 0.03 in lambdas_sorted else 2
+    i = lambdas_sorted.index(0.025) if 0.025 in lambdas_sorted else 2
     lo, hi = lambdas_sorted[max(i - 1, 0)], lambdas_sorted[min(i + 1, len(lambdas_sorted) - 1)]
     group_keys = ["model"]
     s_pt = _avg_abs_shat(lam_raw, "peak_time_mean", lo, hi, group_keys)
@@ -159,10 +159,10 @@ def main():
             min_lambda = lam
             break
     summary_rows.append({"experiment": "lambda_sweep", "parameter": "lambda",
-                         "baseline_value": 0.03, "output_metric": "all",
+                         "baseline_value": 0.025, "output_metric": "all",
                          "S_hat_peak_time": s_pt, "S_hat_peak_magnitude": s_pm,
                          "S_hat_extinction_time": float("nan"),
-                         "conclusion_robust": min_lambda == min_lambda and min_lambda <= 0.03})
+                         "conclusion_robust": min_lambda == min_lambda and min_lambda <= 0.025})
     boundary_rows.append({
         "parameter": "lambda", "boundary_value": min_lambda,
         "boundary_type": "minimum lambda for hub advantage",

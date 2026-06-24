@@ -2,4 +2,4 @@ parameter,boundary_value,boundary_type,interpretation
 gamma,nan,"hub MSE crosses strong MSE (lambda=0.4, rho=15)","no crossing in the swept gamma range [0.3, 1.0]; the hub-vs-strong ranking holds throughout"
 rn_r0_ratio_normalized,1.5282385677963812,hub MSE crosses strong MSE (lambda=0.4),hub advantage disappears below rn/r0=1.528 (normalized)
 rn_r0_ratio_unnormalized,1.931462977451983,hub MSE crosses strong MSE (lambda=0.4),hub advantage disappears below rn/r0=1.931 (unnormalized)
-lambda,0.02,minimum lambda for hub advantage,hub fits SARS better than strong for lambda >= 0.02 (smallest swept value where this held)
+lambda,0.01,minimum lambda for hub advantage,hub fits SARS better than strong for lambda >= 0.01 (smallest swept value where this held)

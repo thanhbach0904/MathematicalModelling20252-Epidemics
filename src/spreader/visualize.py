@@ -304,7 +304,7 @@ def plot_mse_curve(x_by_model, mse_by_model, xlabel, title, baseline=None,
 
     ``x_by_model``/``mse_by_model`` : {model: array}. ``baseline`` draws a
     horizontal reference line (e.g. the strong model's fixed MSE in the rn
-    sweep). ``vline`` marks a parameter value of interest (e.g. lambda=0.03).
+    sweep). ``vline`` marks a parameter value of interest (e.g. lambda=0.025).
     ``crossing`` marks a detected crossover x-value.
     """
     fig, ax = plt.subplots(figsize=(6.5, 4.5))
