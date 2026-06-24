@@ -30,18 +30,30 @@ RC_STRONG = 4.5          # continuum-percolation threshold (all superspreaders)
 RC_HUB = 3.2             # measured critical density at lambda = 1 (hub)
 
 
-def model_params(model, r0=CUTOFF_R0, L=BOX_L):
+def model_params(model, r0=CUTOFF_R0, L=BOX_L, alpha=2.0,
+                 hub_ratio=HUB_FACTOR, normalize_hub=True):
     """Return a dict of per-model parameters consumed by the simulator.
 
     ``model`` is one of ``"strong"``, ``"hub"`` or ``"none"`` (the last treats
     every individual as normal, used for lambda = 0 baselines).
+
+    ``alpha`` is the spatial decay exponent for *normal* individuals (paper
+    default 2). ``hub_ratio`` is the hub superspreader cutoff in units of r0
+    (paper default sqrt(6)). ``normalize_hub`` controls whether the hub
+    superspreader's peak probability ``w0_s`` is rescaled so its infection
+    integral matches the strong model's (the paper's sqrt(6) normalisation,
+    Eqs. in the module docstring); set ``False`` to sweep ``hub_ratio`` with a
+    fixed ``w0_s = W0`` instead (intentionally un-normalised).
     """
     if model == "strong":
-        cutoff_n, exp_n, cutoff_s, exp_s = r0, 2.0, r0, 0.0
+        cutoff_n, exp_n, cutoff_s, exp_s = r0, alpha, r0, 0.0
+        w0_s = W0
     elif model == "hub":
-        cutoff_n, exp_n, cutoff_s, exp_s = r0, 2.0, HUB_FACTOR * r0, 2.0
+        cutoff_n, exp_n, cutoff_s, exp_s = r0, alpha, hub_ratio * r0, 2.0
+        w0_s = (6.0 * W0 * r0 ** 2 / hub_ratio ** 2) if normalize_hub else W0
     elif model in ("none", "normal"):
-        cutoff_n, exp_n, cutoff_s, exp_s = r0, 2.0, r0, 2.0
+        cutoff_n, exp_n, cutoff_s, exp_s = r0, alpha, r0, alpha
+        w0_s = W0
     else:
         raise ValueError(f"unknown model {model!r}")
 
@@ -53,6 +65,8 @@ def model_params(model, r0=CUTOFF_R0, L=BOX_L):
         "exp_n": exp_n,
         "cutoff_s": cutoff_s,
         "exp_s": exp_s,
+        "w0_n": W0,
+        "w0_s": w0_s,
         "n_cells": n_cells,
         "cell_size": cell_size,
         "L": L,

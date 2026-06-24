@@ -78,6 +78,27 @@ def test_critical_density_lands_on_R0_eq_Rc_curve():
             f"{model}: simulated Xc={Xc:.2f} off paper Rc={paper:.2f}")
 
 
+def test_hub_normalization_holds_for_arbitrary_ratio():
+    # closed form: integral_0^c w0*(1-r/c)^2 * 2*pi*r dr = w0*pi*c^2/6 (a=2 case
+    # of models._ring_integral). Must equal pi*r0^2 (the strong superspreader's
+    # integral) whenever normalize_hub=True, for any hub_ratio -- not just
+    # the paper's sqrt(6).
+    for ratio in (1.5, 2.0, np.sqrt(6.0), 4.0):
+        p = model_params("hub", hub_ratio=ratio, normalize_hub=True)
+        integral = p["w0_s"] * np.pi * p["cutoff_s"] ** 2 / 6.0
+        assert abs(integral - np.pi) < 1e-9
+
+
+def test_run_batch_gamma_override_changes_dynamics():
+    # lower gamma (slower recovery) should not shrink outbreaks at fixed density
+    N = density_to_N(20.0)
+    res_fast = run_batch(N, "hub", 0.4, 60, n_jobs=1, base_seed=2, gamma=1.0)
+    res_slow = run_batch(N, "hub", 0.4, 60, n_jobs=1, base_seed=2, gamma=0.3)
+    size_fast = np.mean([r["total_infected"] for r in res_fast])
+    size_slow = np.mean([r["total_infected"] for r in res_slow])
+    assert size_slow >= size_fast
+
+
 def test_single_full_run_returns_tree():
     N = density_to_N(15.0)
     r = single_full_run(N, "hub", 0.4, seed=3)

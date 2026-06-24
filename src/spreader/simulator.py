@@ -33,7 +33,7 @@ def seed_rng(s):
 @njit(cache=True)
 def run_single(positions, is_super,
                cutoff_n, exp_n, cutoff_s, exp_s,
-               w0, gamma, L, n_cells, cell_size,
+               w0_n, w0_s, gamma, L, n_cells, cell_size,
                max_steps, perc_threshold):
     """Run one full epidemic from individual 0.
 
@@ -81,9 +81,11 @@ def run_single(positions, is_super,
             if is_super[i] != 0:
                 cutoff = cutoff_s
                 expo = exp_s
+                w0 = w0_s
             else:
                 cutoff = cutoff_n
                 expo = exp_n
+                w0 = w0_n
             cutoff_sq = cutoff * cutoff
             cx = int(positions[i, 0] / cell_size) % n_cells
             cy = int(positions[i, 1] / cell_size) % n_cells
