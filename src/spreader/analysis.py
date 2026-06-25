@@ -106,3 +106,105 @@ def critical_density(model, lam, X_grid, n_runs, threshold=0.5,
             Xc = x0 + (threshold - p0) * (x1 - x0) / (p1 - p0)
             break
     return Xc, X_grid, probs
+
+
+def run_metrics(results):
+    """Per-run scalar metrics for the sensitivity sweeps.
+
+    Returns a dict of arrays (one entry per run): ``peak_time`` (timestep of
+    the largest ``new_counts``, 0-indexed), ``peak_magnitude``,
+    ``extinction_time`` (= number of sweeps with at least one active
+    infective, i.e. ``n_steps``), ``percolated`` and ``total_infected``.
+    """
+    peak_time = np.zeros(len(results), dtype=float)
+    peak_magnitude = np.zeros(len(results), dtype=float)
+    extinction_time = np.zeros(len(results), dtype=float)
+    percolated = np.zeros(len(results), dtype=bool)
+    total_infected = np.zeros(len(results), dtype=float)
+    for k, r in enumerate(results):
+        n = max(r["n_steps"], 1)
+        curve = r["new_counts"][:n]
+        peak_time[k] = float(np.argmax(curve))
+        peak_magnitude[k] = float(curve.max())
+        extinction_time[k] = float(r["n_steps"])
+        percolated[k] = r["percolated"]
+        total_infected[k] = float(r["total_infected"])
+    return {
+        "peak_time": peak_time,
+        "peak_magnitude": peak_magnitude,
+        "extinction_time": extinction_time,
+        "percolated": percolated,
+        "total_infected": total_infected,
+    }
+
+
+def aggregate_metrics(results):
+    """Mean/std of :func:`run_metrics` plus the percolation probability and
+    its binomial standard error -- the per-config row consumed by the
+    sensitivity-sweep scripts.
+    """
+    m = run_metrics(results)
+    n = len(results)
+    p = float(m["percolated"].mean()) if n else float("nan")
+    return {
+        "peak_time_mean": float(m["peak_time"].mean()),
+        "peak_time_std": float(m["peak_time"].std()),
+        "peak_magnitude_mean": float(m["peak_magnitude"].mean()),
+        "peak_magnitude_std": float(m["peak_magnitude"].std()),
+        "extinction_time_mean": float(m["extinction_time"].mean()),
+        "extinction_time_std": float(m["extinction_time"].std()),
+        "percolation_prob": p,
+        "percolation_stderr": float(np.sqrt(p * (1 - p) / n)) if n else float("nan"),
+    }
+
+
+def mse_vs_sars(mean_curve, sars_curve=None, rescale_peak=True):
+    """Mean squared error between a mean simulated epidemic curve and the
+    SARS Singapore reference curve (default: ``sars_data.SARS_EPIDEMIC_CURVE``),
+    padding whichever array is shorter with zeros.
+
+    ``rescale_peak=True`` (default) first rescales the simulated curve so its
+    peak matches the SARS curve's peak, exactly as ``scripts/05_sars_comparison.py``
+    already does for its plot -- the model population (N~477) is not the
+    Singapore population, so raw amplitudes aren't comparable and an
+    un-rescaled MSE is dominated by that scale mismatch rather than the
+    epidemic *shape*, which is what the paper's comparison is actually about
+    (and what's needed for the lambda=0.4 hub-vs-strong MSE ordering in
+    CLAUDE.md's validation criterion to hold).
+    """
+    if sars_curve is None:
+        from .sars_data import SARS_EPIDEMIC_CURVE as sars_curve
+    a = np.asarray(mean_curve, dtype=float)
+    b = np.asarray(sars_curve, dtype=float)
+    if rescale_peak and a.max() > 0:
+        a = a * (b.max() / a.max())
+    n = max(a.shape[0], b.shape[0])
+    a = np.pad(a, (0, n - a.shape[0]))
+    b = np.pad(b, (0, n - b.shape[0]))
+    return float(np.mean((a - b) ** 2))
+
+
+def sensitivity_index(Q0, Q1, p0, p1):
+    """Numerical sensitivity S_hat = ((Q1-Q0)/Q0) / ((p1-p0)/p0)."""
+    if Q0 == 0 or p0 == p1:
+        return float("nan")
+    return ((Q1 - Q0) / Q0) / ((p1 - p0) / p0)
+
+
+def find_crossing(x_grid, y_grid, target):
+    """First x where ``y_grid`` crosses ``target`` (either direction), found
+    by linear interpolation between the bracketing grid points. Generalises
+    the up-crossing search used by :func:`critical_density`. Returns ``nan``
+    if no sign change of ``y - target`` occurs.
+    """
+    x_grid = np.asarray(x_grid, dtype=float)
+    y_grid = np.asarray(y_grid, dtype=float)
+    diff = y_grid - target
+    for k in range(1, len(x_grid)):
+        if diff[k - 1] == 0:
+            return float(x_grid[k - 1])
+        if diff[k - 1] * diff[k] < 0:
+            x0, x1 = x_grid[k - 1], x_grid[k]
+            d0, d1 = diff[k - 1], diff[k]
+            return float(x0 + (0.0 - d0) * (x1 - x0) / (d1 - d0))
+    return float("nan")

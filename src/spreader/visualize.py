@@ -207,8 +207,10 @@ def plot_infection_network(result, savepath=None, title="Infection network"):
 
     fig, ax = plt.subplots(figsize=(6.4, 6.0))
 
-    # draw infection arrows where the minimum-image edge does not cross a
-    # periodic boundary (keeps the picture readable, as in the paper)
+    # draw the directed route of infection (infector -> infected) as arrows,
+    # as in the paper. Skip edges whose minimum-image link crosses a periodic
+    # boundary (keeps the picture readable).
+    xs, ys, us, vs = [], [], [], []
     for j in range(len(infector)):
         i = infector[j]
         if i < 0:
@@ -216,8 +218,12 @@ def plot_infection_network(result, savepath=None, title="Infection network"):
         dx = pos[j, 0] - pos[i, 0]
         dy = pos[j, 1] - pos[i, 1]
         if abs(dx) < 0.5 * L and abs(dy) < 0.5 * L:
-            ax.plot([pos[i, 0], pos[j, 0]], [pos[i, 1], pos[j, 1]],
-                    "-", color="0.45", lw=0.5, zorder=1)
+            xs.append(pos[i, 0]); ys.append(pos[i, 1])
+            us.append(dx); vs.append(dy)
+    if xs:
+        ax.quiver(xs, ys, us, vs, angles="xy", scale_units="xy", scale=1,
+                  color="0.45", width=0.0028, headwidth=4.5, headlength=6,
+                  headaxislength=5, alpha=0.85, zorder=1)
 
     infected = state != 0
     # susceptible
@@ -241,7 +247,13 @@ def plot_infection_network(result, savepath=None, title="Infection network"):
     ax.set_aspect("equal")
     ax.grid(False)
     ax.set_title(title)
-    ax.legend(loc="center left", bbox_to_anchor=(1.0, 0.5), fontsize=8)
+    # legend: "route of infection ->" arrow first (as in the paper), then markers
+    from matplotlib.lines import Line2D
+    route = Line2D([0], [0], color="0.45", lw=1.0, marker=">", markersize=6,
+                   markevery=[-1], label="route of infection")
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend([route, *handles], ["route of infection", *labels],
+              loc="center left", bbox_to_anchor=(1.0, 0.5), fontsize=8)
     fig.tight_layout()
     _save(fig, savepath)
     return fig
@@ -295,7 +307,7 @@ def plot_sars_comparison(model_curves, sars_curve, savepath=None):
     ax.set_ylabel("number of patients")
     ax.set_xlim(0, 25)
     ax.set_ylim(0, None)
-    ax.set_title("SARS comparison (Fig. 15)")
+    ax.set_title("SARS comparison")
     ax.legend()
     fig.tight_layout()
     _save(fig, savepath)
@@ -320,6 +332,65 @@ def plot_finite_size(curves, paper_Rc, savepath=None):
     ax.set_ylabel(r"critical density $\rho_c \pi r_0^2$  ($\lambda=1$)")
     ax.set_title("Finite-size convergence toward the paper's $R_c$")
     ax.legend()
+    fig.tight_layout()
+    _save(fig, savepath)
+    return fig
+
+
+def plot_gamma_epidemic_curves(curves, gammas, savepath=None):
+    """FIG_S1: epidemic curves for each gamma value, strong vs hub side by side.
+
+    ``curves`` : {(model, gamma): curve_array}
+    """
+    fig, axes = plt.subplots(len(gammas), 2, figsize=(9, 2.2 * len(gammas)),
+                             sharex=True, sharey=True)
+    model_col = {"strong": 0, "hub": 1}
+    for row, gamma in enumerate(gammas):
+        for model, col in model_col.items():
+            ax = axes[row, col]
+            curve = curves.get((model, gamma))
+            if curve is not None:
+                t = np.arange(len(curve))
+                ax.plot(t, curve, color="tab:red" if model == "strong" else "tab:blue")
+            ax.set_xlim(0, 40)
+            if row == 0:
+                ax.set_title("strong infectiousness" if model == "strong" else model)
+            if col == 0:
+                ax.set_ylabel(fr"$\gamma={gamma}$")
+    fig.suptitle("Epidemic curves across recovery probability $\\gamma$",
+                 fontweight="bold")
+    fig.tight_layout()
+    _save(fig, savepath)
+    return fig
+
+
+def plot_mse_curve(x_by_model, mse_by_model, xlabel, title, baseline=None,
+                   baseline_label=None, vline=None, crossing=None, savepath=None):
+    """Generic MSE-vs-swept-parameter plot, used for FIG_S2/S3/S4.
+
+    ``x_by_model``/``mse_by_model`` : {model: array}. ``baseline`` draws a
+    horizontal reference line (e.g. the strong model's fixed MSE in the rn
+    sweep). ``vline`` marks a parameter value of interest (e.g. lambda=0.025).
+    ``crossing`` marks a detected crossover x-value.
+    """
+    fig, ax = plt.subplots(figsize=(6.5, 4.5))
+    styles = {"strong": ("o-", "tab:red", "Strong infectiousness"),
+              "hub": ("s-", "tab:blue", "Hub")}
+    for model, x in x_by_model.items():
+        ls, c, name = styles.get(model, ("o-", "tab:gray", model))
+        ax.plot(x, mse_by_model[model], ls, color=c, label=name)
+    if baseline is not None:
+        ax.axhline(baseline, ls="--", color="0.4",
+                   label=baseline_label or "reference")
+    if vline is not None:
+        ax.axvline(vline, ls=":", color="0.4", label=f"x={vline}")
+    if crossing is not None and np.isfinite(crossing):
+        ax.axvline(crossing, ls="-.", color="green",
+                   label=f"crossover x={crossing:.2f}")
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel("MSE vs SARS curve")
+    ax.set_title(title)
+    ax.legend(fontsize=8)
     fig.tight_layout()
     _save(fig, savepath)
     return fig
