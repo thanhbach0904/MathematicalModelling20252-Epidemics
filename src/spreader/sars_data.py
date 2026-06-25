@@ -67,9 +67,12 @@ def sars_secondary_distribution(max_links=40, normalise=True):
 # the underlying daily counts are not published as text). The shape (single peak
 # in late March) and total (~N_PROBABLE_CASES) are constrained by the CDC report,
 # but individual bars carry digitisation error -- this curve is NOT exact.
+# Aligned to the paper's Fig. 15: the outbreak rises from ~t=2 (the first ~2
+# six-day steps are near-zero) and peaks around t=6, so the series is offset two
+# steps from a naive t=0 start.
 SARS_EPIDEMIC_CURVE = np.array([
-    2, 4, 12, 20, 50, 16, 40, 27, 8, 4, 3, 2,
-    1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 2, 4, 12, 20, 50, 16, 40, 27, 8, 4,
+    3, 2, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,
 ], dtype=float)
 
 SARS_DAYS_PER_STEP = 6
