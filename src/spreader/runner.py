@@ -8,17 +8,17 @@ from .geometry import sample_positions
 from .simulator import run_single, seed_rng
 
 
-def _make_run(N, model, lam, seed):
+def _make_run(N, model, lam, seed, init_mode):
     """Build the inputs for one run with reproducible RNG."""
     rng = np.random.default_rng(seed)
-    positions = sample_positions(N, BOX_L, rng)
+    positions = sample_positions(N, BOX_L, rng, init_mode=init_mode)
     is_super = (rng.random(N) < lam).astype(np.int8)
     p = model_params(model)
     return positions, is_super, p
 
 
-def _one_run(seed, N, model, lam, max_steps, perc_threshold, full):
-    positions, is_super, p = _make_run(N, model, lam, seed)
+def _one_run(seed, N, model, lam, max_steps, perc_threshold, full, init_mode):
+    positions, is_super, p = _make_run(N, model, lam, seed, init_mode)
     seed_rng(int(seed) & 0x7FFFFFFF)            # seed Numba's RNG per run
     (perc, new_counts, rf_curve, secondary,
      infector, unwrapped, state, n_steps) = run_single(
@@ -46,11 +46,13 @@ def _one_run(seed, N, model, lam, max_steps, perc_threshold, full):
 
 
 def run_batch(N, model, lam, n_runs, max_steps=200, perc_threshold=BOX_L,
-              n_jobs=-1, base_seed=0, full=False, verbose=False):
+              n_jobs=-1, base_seed=0, full=False, verbose=False,
+              init_mode="bottom-random"):
     """Run ``n_runs`` independent epidemics; return a list of result dicts."""
     seeds = base_seed + np.arange(n_runs)
     results = Parallel(n_jobs=n_jobs, verbose=5 if verbose else 0)(
-        delayed(_one_run)(int(s), N, model, lam, max_steps, perc_threshold, full)
+        delayed(_one_run)(int(s), N, model, lam, max_steps, perc_threshold,
+                          full, init_mode)
         for s in seeds
     )
     return results
@@ -62,6 +64,8 @@ def percolation_probability(N, model, lam, n_runs, **kw):
     return float(np.mean([r["percolated"] for r in res]))
 
 
-def single_full_run(N, model, lam, seed=0, max_steps=200, perc_threshold=BOX_L):
+def single_full_run(N, model, lam, seed=0, max_steps=200, perc_threshold=BOX_L,
+                    init_mode="bottom-random"):
     """One run returning full arrays (positions, infection tree) for plotting."""
-    return _one_run(seed, N, model, lam, max_steps, perc_threshold, full=True)
+    return _one_run(seed, N, model, lam, max_steps, perc_threshold,
+                    full=True, init_mode=init_mode)

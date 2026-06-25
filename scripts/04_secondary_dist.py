@@ -16,11 +16,12 @@ from spreader.analysis import secondary_distribution
 from spreader import visualize as V
 
 
-def _pick_outbreak_seed(N, model, lam, max_seed=200):
+def _pick_outbreak_seed(N, model, lam, init_mode="bottom-random",
+                        max_seed=200):
     """Find a seed that produced a sizeable outbreak (for a nice network plot)."""
     best_seed, best_size = 0, -1
     for s in range(max_seed):
-        r = single_full_run(N, model, lam, seed=s)
+        r = single_full_run(N, model, lam, seed=s, init_mode=init_mode)
         if r["total_infected"] > best_size:
             best_seed, best_size = s, r["total_infected"]
         if r["total_infected"] > 0.5 * N:
@@ -33,6 +34,9 @@ def main():
     ap.add_argument("--runs", type=int, default=500)
     ap.add_argument("--lam", type=float, default=0.2)
     ap.add_argument("--density", type=float, default=15.0)
+    ap.add_argument("--init-mode", default="bottom-random",
+                    choices=["bottom-random", "bottom-center", "uniform"],
+                    help="how to place the initial infected individual")
     ap.add_argument("--jobs", type=int, default=-1)
     args = ap.parse_args()
 
@@ -42,21 +46,25 @@ def main():
     # --- Figs. 9-11: single-run infection networks ---
     for model, label in (("strong", "Strong infectiousness (Fig. 9)"),
                          ("hub", "Hub (Fig. 10)")):
-        s = _pick_outbreak_seed(N, model, args.lam)
-        r = single_full_run(N, model, args.lam, seed=s)
+        s = _pick_outbreak_seed(N, model, args.lam,
+                                init_mode=args.init_mode)
+        r = single_full_run(N, model, args.lam, seed=s,
+                            init_mode=args.init_mode)
         V.plot_infection_network(
             r, savepath=B.fig(f"fig9_10_network_{model}.png"),
             title=fr"{label}, $\lambda={args.lam}$, $\rho\pi r_0^2={args.density}$")
         print(f"  {model}: network seed={s}, infected={r['total_infected']}")
 
-    s0 = _pick_outbreak_seed(N, "none", 0.0)
-    r0 = single_full_run(N, "none", 0.0, seed=s0)
+    s0 = _pick_outbreak_seed(N, "none", 0.0, init_mode=args.init_mode)
+    r0 = single_full_run(N, "none", 0.0, seed=s0,
+                         init_mode=args.init_mode)
     V.plot_infection_network(
         r0, savepath=B.fig("fig11_network_none.png"),
         title=fr"No superspreader (Fig. 11), $\lambda=0$, $\rho\pi r_0^2={args.density}$")
 
     # --- Figs. 12-13: distributions of the number of links ---
-    res_none = run_batch(N, "none", 0.0, args.runs, n_jobs=args.jobs)
+    res_none = run_batch(N, "none", 0.0, args.runs, n_jobs=args.jobs,
+                         init_mode=args.init_mode)
     c0, f0 = secondary_distribution(res_none)
     V.plot_secondary_distribution(
         {r"$\lambda=0$ (no superspreader)":
@@ -64,8 +72,10 @@ def main():
         savepath=B.fig("fig12_links_none.png"),
         title="Number of links, no superspreader (Fig. 12)")
 
-    res_strong = run_batch(N, "strong", args.lam, args.runs, n_jobs=args.jobs)
-    res_hub = run_batch(N, "hub", args.lam, args.runs, n_jobs=args.jobs)
+    res_strong = run_batch(N, "strong", args.lam, args.runs,
+                           n_jobs=args.jobs, init_mode=args.init_mode)
+    res_hub = run_batch(N, "hub", args.lam, args.runs, n_jobs=args.jobs,
+                        init_mode=args.init_mode)
     cs, fs = secondary_distribution(res_strong)
     ch, fh = secondary_distribution(res_hub)
     V.plot_secondary_distribution(

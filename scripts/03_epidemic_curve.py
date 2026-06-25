@@ -22,15 +22,21 @@ def main():
     ap.add_argument("--runs", type=int, default=500)
     ap.add_argument("--lam", type=float, default=0.2)
     ap.add_argument("--density", type=float, default=20.0)
+    ap.add_argument("--init-mode", default="bottom-random",
+                    choices=["bottom-random", "bottom-center", "uniform"],
+                    help="how to place the initial infected individual")
     ap.add_argument("--jobs", type=int, default=-1)
     args = ap.parse_args()
 
     N = density_to_N(args.density)
     print(f"rho*pi*r0^2 = {args.density} -> N = {N}")
 
-    res_strong = run_batch(N, "strong", args.lam, args.runs, n_jobs=args.jobs)
-    res_hub = run_batch(N, "hub", args.lam, args.runs, n_jobs=args.jobs)
-    res_none = run_batch(N, "none", 0.0, args.runs, n_jobs=args.jobs)
+    res_strong = run_batch(N, "strong", args.lam, args.runs, n_jobs=args.jobs,
+                           init_mode=args.init_mode)
+    res_hub = run_batch(N, "hub", args.lam, args.runs, n_jobs=args.jobs,
+                        init_mode=args.init_mode)
+    res_none = run_batch(N, "none", 0.0, args.runs, n_jobs=args.jobs,
+                         init_mode=args.init_mode)
 
     c_strong = mean_epidemic_curve(res_strong, condition="outbreak")
     c_hub = mean_epidemic_curve(res_hub, condition="outbreak")

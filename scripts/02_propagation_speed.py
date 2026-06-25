@@ -22,6 +22,9 @@ def main():
     ap.add_argument("--runs", type=int, default=300)
     ap.add_argument("--density", type=float, default=20.0,
                     help="rho*pi*r0^2")
+    ap.add_argument("--init-mode", default="bottom-random",
+                    choices=["bottom-random", "bottom-center", "uniform"],
+                    help="how to place the initial infected individual")
     ap.add_argument("--jobs", type=int, default=-1)
     args = ap.parse_args()
 
@@ -36,7 +39,8 @@ def main():
     for model in ("strong", "hub"):
         print(f"\n=== {model} model ===")
         for lam in lam_grid:
-            res = run_batch(N, model, lam, args.runs, n_jobs=args.jobs)
+            res = run_batch(N, model, lam, args.runs, n_jobs=args.jobs,
+                            init_mode=args.init_mode)
             rf = mean_rf_curve(res, condition="percolated")
             v = front_velocity(res, condition="percolated")
             vel_by_model[model].append(v)

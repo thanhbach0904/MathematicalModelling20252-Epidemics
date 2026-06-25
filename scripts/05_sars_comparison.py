@@ -25,6 +25,9 @@ def main():
     ap.add_argument("--runs", type=int, default=500)
     ap.add_argument("--lam", type=float, default=0.4)
     ap.add_argument("--density", type=float, default=15.0)
+    ap.add_argument("--init-mode", default="bottom-random",
+                    choices=["bottom-random", "bottom-center", "uniform"],
+                    help="how to place the initial infected individual")
     ap.add_argument("--jobs", type=int, default=-1)
     args = ap.parse_args()
 
@@ -37,9 +40,12 @@ def main():
                           savepath=B.fig("fig14_sars_secondary.png"))
 
     # --- Fig. 15: epidemic curves, models vs SARS data ---
-    res_strong = run_batch(N, "strong", args.lam, args.runs, n_jobs=args.jobs)
-    res_hub = run_batch(N, "hub", args.lam, args.runs, n_jobs=args.jobs)
-    res_none = run_batch(N, "none", 0.0, args.runs, n_jobs=args.jobs)
+    res_strong = run_batch(N, "strong", args.lam, args.runs, n_jobs=args.jobs,
+                           init_mode=args.init_mode)
+    res_hub = run_batch(N, "hub", args.lam, args.runs, n_jobs=args.jobs,
+                        init_mode=args.init_mode)
+    res_none = run_batch(N, "none", 0.0, args.runs, n_jobs=args.jobs,
+                         init_mode=args.init_mode)
 
     c_strong = mean_epidemic_curve(res_strong, condition="outbreak")
     c_hub = mean_epidemic_curve(res_hub, condition="outbreak")
@@ -65,7 +71,7 @@ def main():
     np.savez(B.data("sars_comparison.npz"),
              sars_curve=sars, strong=c_strong, hub=c_hub, none=c_none,
              sars_centres=c_sars, sars_secondary=f_sars)
-    print("Done. NOTE: SARS arrays are digitised approximations (see sars_data.py).")
+    print("Done. NOTE: SARS reference data are loaded from data/*.csv.")
 
 
 if __name__ == "__main__":

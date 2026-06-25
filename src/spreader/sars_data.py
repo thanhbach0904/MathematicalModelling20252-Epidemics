@@ -1,43 +1,54 @@
-"""Approximate SARS reference data for Singapore 2003, used for the Section 4
-comparison plots (Figs. 14-15).
+"""SARS reference data loaders for the Section 4 comparison plots.
 
-NOTE: these arrays are *hand-digitised approximations* read off the figures in
-Fujie & Odagaki (2007), themselves based on CDC MMWR 52:405-411 and WHO epidemic
-curves.  They reproduce the qualitative shape (the long-tailed secondary-case
-distribution with isolated superspreaders at 12/21/23/40, and the single-peaked
-epidemic curve) and are NOT the exact published counts.  Replace with the
-primary source if exact figures are required.
+The data live in repository-level CSV files under ``data/`` instead of being
+hard-coded here. This keeps the provenance visible and makes it easy to replace
+the digitised chart values with a more authoritative table later.
 """
+
+import csv
+from pathlib import Path
 
 import numpy as np
 
-# --- Fig. 14: number of probable cases by their number of direct secondary
-# cases (Feb 25 - Apr 30, 2003).  index = number of secondary cases, value =
-# how many index patients.  Most patients infect nobody; four superspreaders
-# infected 12, 21, 23 and 40 people.
-SARS_SECONDARY_CASES = {
-    0: 162, 1: 22, 2: 8, 3: 4, 4: 2, 5: 1,
-    7: 1, 12: 1, 21: 1, 23: 1, 40: 1,
-}
+ROOT_DIR = Path(__file__).resolve().parents[2]
+DATA_DIR = ROOT_DIR / "data"
+SARS_SECONDARY_CASES_CSV = DATA_DIR / "sars_singapore_secondary_cases.csv"
+SARS_EPIDEMIC_CURVE_CSV = DATA_DIR / "sars_singapore_epidemic_curve_6day.csv"
+SARS_DAYS_PER_STEP = 6
 
 
-def sars_secondary_distribution(max_links=40, normalise=True):
+def load_secondary_cases(path=SARS_SECONDARY_CASES_CSV):
+    """Return {secondary_cases: index_patients} from the reference CSV."""
+    cases = {}
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            cases[int(row["secondary_cases"])] = int(row["index_patients"])
+    return cases
+
+
+def load_epidemic_curve(path=SARS_EPIDEMIC_CURVE_CSV):
+    """Return the 6-day binned SARS Singapore epidemic curve."""
+    rows = []
+    with open(path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            rows.append((int(row["time_step"]), float(row["new_patients"])))
+    rows.sort(key=lambda x: x[0])
+    return np.array([value for _, value in rows], dtype=float)
+
+
+SARS_SECONDARY_CASES = load_secondary_cases()
+SARS_EPIDEMIC_CURVE = load_epidemic_curve()
+
+
+def sars_secondary_distribution(max_links=40, normalise=True, cases=None):
     """Return (centres, freq) histogram matching Fig. 14."""
+    if cases is None:
+        cases = SARS_SECONDARY_CASES
     centres = np.arange(0, max_links + 1)
     freq = np.zeros(max_links + 1, dtype=float)
-    for k, v in SARS_SECONDARY_CASES.items():
+    for k, v in cases.items():
         if k <= max_links:
             freq[k] = v
     if normalise:
         freq = freq / freq.sum()
     return centres, freq
-
-
-# --- Fig. 15: epidemic curve (new probable cases per 6-day step),
-# Feb 13 - Jun 13, 2003.  One time step == 6 days.
-SARS_EPIDEMIC_CURVE = np.array([
-    2, 4, 12, 20, 50, 16, 40, 27, 8, 4, 3, 2,
-    1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-], dtype=float)
-
-SARS_DAYS_PER_STEP = 6

@@ -219,3 +219,6 @@ __marimo__/
 
 # Project outputs
 results/data
+
+# Local credentials
+kaggle.json

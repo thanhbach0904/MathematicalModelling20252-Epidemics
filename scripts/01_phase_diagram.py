@@ -26,6 +26,9 @@ def main():
     ap.add_argument("--nx", type=int, default=26, help="number of density points")
     ap.add_argument("--lambdas", type=float, nargs="+",
                     default=[0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ap.add_argument("--init-mode", default="bottom-random",
+                    choices=["bottom-random", "bottom-center", "uniform"],
+                    help="how to place the initial infected individual")
     ap.add_argument("--jobs", type=int, default=-1)
     args = ap.parse_args()
 
@@ -37,7 +40,8 @@ def main():
         for lam in args.lambdas:
             probs = np.array([
                 percolation_probability(density_to_N(X), model, lam,
-                                        args.runs, n_jobs=args.jobs)
+                                        args.runs, n_jobs=args.jobs,
+                                        init_mode=args.init_mode)
                 for X in X_grid
             ])
             prob_by_lambda[lam] = probs
@@ -57,7 +61,8 @@ def main():
         lams, Xcs = [], []
         for lam in lam_points:
             Xc, _, _ = critical_density(model, lam, X_grid, args.runs,
-                                        n_jobs=args.jobs)
+                                        n_jobs=args.jobs,
+                                        init_mode=args.init_mode)
             if not np.isnan(Xc):
                 lams.append(lam)
                 Xcs.append(Xc)

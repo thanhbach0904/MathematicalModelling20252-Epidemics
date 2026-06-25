@@ -13,7 +13,9 @@ import numpy as np
 from spreader.models import (model_params, density_to_N, N_to_density,
                              R0_analytic, critical_density_curve,
                              RC_STRONG, RC_HUB)
+from spreader.geometry import sample_positions
 from spreader.runner import run_batch, single_full_run
+from spreader import sars_data
 
 
 def test_density_population_roundtrip():
@@ -27,6 +29,19 @@ def test_model_params_cell_size_covers_cutoff():
         p = model_params(model)
         assert p["cell_size"] >= max(p["cutoff_n"], p["cutoff_s"]) - 1e-9
         assert p["n_cells"] >= 3
+
+
+def test_sample_positions_randomises_each_run():
+    p1 = sample_positions(20, 10.0, np.random.default_rng(1))
+    p2 = sample_positions(20, 10.0, np.random.default_rng(2))
+    assert p1[0, 1] == 0.0
+    assert p2[0, 1] == 0.0
+    assert p1[0, 0] != p2[0, 0]
+    assert not np.allclose(p1[1:], p2[1:])
+
+    legacy = sample_positions(20, 10.0, np.random.default_rng(1),
+                              init_mode="bottom-center")
+    assert np.allclose(legacy[0], [5.0, 0.0])
 
 
 def test_strong_super_is_constant_probability():
@@ -49,6 +64,13 @@ def test_R0_closed_form():
             X = 12.0
             expected = X * (1 + 5 * lam) / 6
             assert abs(R0_analytic(lam, model, X=X) - expected) < 1e-9
+
+
+def test_sars_reference_data_loads_from_csv():
+    assert sars_data.SARS_SECONDARY_CASES[0] == 162
+    assert sars_data.SARS_SECONDARY_CASES[40] == 1
+    assert sars_data.SARS_EPIDEMIC_CURVE.shape == (25,)
+    assert sars_data.SARS_DAYS_PER_STEP == 6
 
 
 def test_run_smoke_and_monotonic_outbreak_in_lambda():

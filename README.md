@@ -65,7 +65,8 @@ python scripts/05_sars_comparison.py --runs 500 # Figs 14-15 SARS Singapore comp
 ```
 
 Common flags: `--runs` (MC runs per point), `--jobs` (parallel workers, `-1` =
-all cores), `--density` (`rho*pi*r0^2`), `--lam` (superspreader fraction λ).
+all cores), `--density` (`rho*pi*r0^2`), `--lam` (superspreader fraction λ),
+and `--init-mode` (`bottom-random`, `bottom-center`, or `uniform`).
 
 The first run pays a one-off Numba compilation cost (a few seconds).
 
@@ -90,9 +91,10 @@ src/spreader/
   runner.py       parallel batches (joblib) + single full run
   analysis.py     percolation prob, critical density, velocity, distributions
   visualize.py    all Matplotlib figures
-  sars_data.py    digitised SARS Singapore reference data (Figs 14-15)
+  sars_data.py    CSV-backed SARS Singapore reference data loaders
 scripts/          00-05 experiments + run_all
 tests/            smoke + analytic checks
+data/             SARS Singapore reference CSV files and source notes
 results/          generated figures and data (gitignored)
 ```
 
@@ -103,6 +105,11 @@ results/          generated figures and data (gitignored)
   its cutoff with probability `w(r)`; newly infected act only next sweep
   ("without new infected ones"); after acting an infective recovers with
   probability `γ`. With `γ = 1` (the paper's value) this is a generational SIR.
+- **Initial positions.** Every independent Monte-Carlo run resamples the whole
+  population. By default, patient zero is randomised along the bottom edge
+  (`--init-mode bottom-random`) and the remaining individuals are sampled
+  uniformly in the box. Use `--init-mode bottom-center` to reproduce the older
+  fixed bottom-centre setup.
 - **Density parameter.** The control variable is `X = ρπr0²`. With `r0 = 1`,
   `L = 10`, `X = Nπ/100`; e.g. `N = 477 → X ≈ 15`.
 - **Percolation criterion.** A torus has no real "top", so we accumulate an
@@ -113,9 +120,9 @@ results/          generated figures and data (gitignored)
   the percolation probability; in a finite `L=10` box it sits modestly below the
   mean-field `R0=Rc` curve (Fig. 5), as expected. The same unwrapped tracking
   lets the front distance `r_f` (Fig. 6) exceed `L/√2`.
-- **SARS data** in `sars_data.py` are hand-digitised approximations of Figs.
-  14-15, sufficient for the qualitative comparison; replace with CDC MMWR
-  52:405-411 / WHO curves for exact values.
+- **SARS data** are loaded from `data/*.csv`. Some values still come from
+  digitised Figs. 14-15 because I did not find a public machine-readable table
+  matching the paper's exact 6-day bins; source notes are kept beside the CSVs.
 
 ## Optional Tier-3 (GPU)
 

@@ -26,6 +26,9 @@ SCRIPTS = [
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--runs", type=int, default=150)
+    ap.add_argument("--init-mode", default="bottom-random",
+                    choices=["bottom-random", "bottom-center", "uniform"],
+                    help="how to place the initial infected individual")
     args = ap.parse_args()
 
     import os
@@ -33,6 +36,8 @@ def main():
     for name in SCRIPTS:
         print(f"\n################ {name} ################")
         argv = ["--runs", str(args.runs)] if name != "00_infection_probability.py" else []
+        if name != "00_infection_probability.py":
+            argv += ["--init-mode", args.init_mode]
         sys.argv = [name] + argv
         runpy.run_path(os.path.join(here, name), run_name="__main__")
     print("\nAll experiments finished. See results/figures/.")
