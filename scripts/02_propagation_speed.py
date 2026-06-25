@@ -23,6 +23,9 @@ def main():
     ap.add_argument("--density", type=float, default=20.0,
                     help="rho*pi*r0^2")
     ap.add_argument("--jobs", type=int, default=-1)
+    ap.add_argument("--periodic", action="store_true",
+                    help="use the torus (caps r_f at L/sqrt(2)); default is a "
+                         "bounded box matching the paper's absolute r_f scale")
     args = ap.parse_args()
 
     N = density_to_N(args.density)
@@ -36,9 +39,11 @@ def main():
     for model in ("strong", "hub"):
         print(f"\n=== {model} model ===")
         for lam in lam_grid:
-            res = run_batch(N, model, lam, args.runs, n_jobs=args.jobs)
-            rf = mean_rf_curve(res, condition="percolated")
-            v = front_velocity(res, condition="percolated")
+            res = run_batch(N, model, lam, args.runs, n_jobs=args.jobs,
+                            periodic=args.periodic)
+            # Paper averages over ALL runs (p.845), not just percolated ones.
+            rf = mean_rf_curve(res, condition="all")
+            v = front_velocity(res, condition="all")
             vel_by_model[model].append(v)
             if model == "strong":
                 rf_by_lambda[lam] = rf

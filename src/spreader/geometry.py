@@ -31,3 +31,13 @@ def min_image_delta(xi, yi, xj, yj, L):
     elif dy < -0.5 * L:
         dy += L
     return dx, dy
+
+
+@njit(cache=True)
+def delta(xi, yi, xj, yj, L, periodic):
+    """Vector j-i. Minimum-image on a torus (``periodic``), else the plain
+    difference for a bounded (hard-wall) box where distances are unbounded by L.
+    """
+    if periodic:
+        return min_image_delta(xi, yi, xj, yj, L)
+    return xj - xi, yj - yi

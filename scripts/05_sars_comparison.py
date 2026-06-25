@@ -41,9 +41,9 @@ def main():
     res_hub = run_batch(N, "hub", args.lam, args.runs, n_jobs=args.jobs)
     res_none = run_batch(N, "none", 0.0, args.runs, n_jobs=args.jobs)
 
-    c_strong = mean_epidemic_curve(res_strong, condition="outbreak")
-    c_hub = mean_epidemic_curve(res_hub, condition="outbreak")
-    c_none = mean_epidemic_curve(res_none, condition="outbreak")
+    c_strong = mean_epidemic_curve(res_strong, condition="all")
+    c_hub = mean_epidemic_curve(res_hub, condition="all")
+    c_none = mean_epidemic_curve(res_none, condition="all")
 
     sars = sars_data.SARS_EPIDEMIC_CURVE
     # scale model curves so their peak matches the SARS peak (shape comparison)

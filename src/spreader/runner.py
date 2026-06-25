@@ -17,7 +17,8 @@ def _make_run(N, model, lam, seed, L=BOX_L):
     return positions, is_super, p
 
 
-def _one_run(seed, N, model, lam, max_steps, perc_threshold, full, L=BOX_L):
+def _one_run(seed, N, model, lam, max_steps, perc_threshold, full, L=BOX_L,
+             periodic=True):
     positions, is_super, p = _make_run(N, model, lam, seed, L=L)
     seed_rng(int(seed) & 0x7FFFFFFF)            # seed Numba's RNG per run
     (perc, new_counts, rf_curve, secondary,
@@ -25,7 +26,7 @@ def _one_run(seed, N, model, lam, max_steps, perc_threshold, full, L=BOX_L):
         positions, is_super,
         p["cutoff_n"], p["exp_n"], p["cutoff_s"], p["exp_s"],
         W0, GAMMA, p["L"], p["n_cells"], p["cell_size"],
-        max_steps, perc_threshold)
+        max_steps, perc_threshold, bool(periodic))
 
     total_infected = int(np.count_nonzero(state != 0))
     out = {
@@ -46,18 +47,26 @@ def _one_run(seed, N, model, lam, max_steps, perc_threshold, full, L=BOX_L):
 
 
 def run_batch(N, model, lam, n_runs, max_steps=200, perc_threshold=None,
-              n_jobs=-1, base_seed=0, full=False, verbose=False, L=BOX_L):
+              n_jobs=-1, base_seed=0, full=False, verbose=False, L=BOX_L,
+              periodic=True):
     """Run ``n_runs`` independent epidemics; return a list of result dicts.
 
     ``L`` sets the box side (default 10 r0, as in the paper). The percolation
     threshold defaults to ``L`` (bottom->top vertical spanning). Enlarging ``L``
     (with ``N`` scaled to keep the density fixed) reduces finite-size bias.
+
+    ``periodic`` selects the boundary: ``True`` (default) is the torus used for
+    the phase-diagram / critical-density work; ``False`` is a bounded hard-wall
+    box. The bounded box, with the seed at the bottom-centre, lets the front
+    distance ``r_f`` reach the paper's absolute scale (up to sqrt(5^2+10^2) ~=
+    11.18 r0) instead of being capped at L/sqrt(2) by the torus.
     """
     if perc_threshold is None:
         perc_threshold = L
     seeds = base_seed + np.arange(n_runs)
     results = Parallel(n_jobs=n_jobs, verbose=5 if verbose else 0)(
-        delayed(_one_run)(int(s), N, model, lam, max_steps, perc_threshold, full, L)
+        delayed(_one_run)(int(s), N, model, lam, max_steps, perc_threshold,
+                          full, L, periodic)
         for s in seeds
     )
     return results
@@ -70,8 +79,9 @@ def percolation_probability(N, model, lam, n_runs, **kw):
 
 
 def single_full_run(N, model, lam, seed=0, max_steps=200, perc_threshold=None,
-                    L=BOX_L):
+                    L=BOX_L, periodic=True):
     """One run returning full arrays (positions, infection tree) for plotting."""
     if perc_threshold is None:
         perc_threshold = L
-    return _one_run(seed, N, model, lam, max_steps, perc_threshold, full=True, L=L)
+    return _one_run(seed, N, model, lam, max_steps, perc_threshold, full=True,
+                    L=L, periodic=periodic)

@@ -20,7 +20,7 @@ legitimately exceed L/sqrt(2).
 import numpy as np
 from numba import njit
 
-from .geometry import min_image_delta
+from .geometry import delta
 from .cell_list import build_cell_list
 
 
@@ -34,8 +34,13 @@ def seed_rng(s):
 def run_single(positions, is_super,
                cutoff_n, exp_n, cutoff_s, exp_s,
                w0, gamma, L, n_cells, cell_size,
-               max_steps, perc_threshold):
+               max_steps, perc_threshold, periodic):
     """Run one full epidemic from individual 0.
+
+    ``periodic`` (bool): True = minimum-image torus (phase diagram / critical
+    density); False = bounded hard-wall box (no cell wrapping, plain Euclidean
+    displacement). On the bounded box ``unwrapped`` coincides with ``positions``
+    and ``r_f`` can reach the box scale rather than being capped at L/sqrt(2).
 
     Returns a tuple:
         percolated   : bool   -- paper's criterion: the infection seeded at the
@@ -90,13 +95,19 @@ def run_single(positions, is_super,
 
             for ddx in range(-1, 2):
                 for ddy in range(-1, 2):
-                    ncx = (cx + ddx) % n_cells
-                    ncy = (cy + ddy) % n_cells
+                    if periodic:
+                        ncx = (cx + ddx) % n_cells
+                        ncy = (cy + ddy) % n_cells
+                    else:
+                        ncx = cx + ddx
+                        ncy = cy + ddy
+                        if ncx < 0 or ncx >= n_cells or ncy < 0 or ncy >= n_cells:
+                            continue
                     j = head[ncx, ncy]
                     while j != -1:
                         if state[j] == 0:
-                            dx, dy = min_image_delta(positions[i, 0], positions[i, 1],
-                                                     positions[j, 0], positions[j, 1], L)
+                            dx, dy = delta(positions[i, 0], positions[i, 1],
+                                           positions[j, 0], positions[j, 1], L, periodic)
                             d2 = dx * dx + dy * dy
                             if d2 < cutoff_sq:
                                 r = np.sqrt(d2)
@@ -109,7 +120,14 @@ def run_single(positions, is_super,
                                     uy = unwrapped[i, 1] + dy
                                     unwrapped[j, 0] = ux
                                     unwrapped[j, 1] = uy
-                                    disp = np.sqrt((ux - x0) ** 2 + (uy - y0) ** 2)
+                                    # Front distance r_f (Fig. 6): true geometric
+                                    # distance from the seed to this node, NOT the
+                                    # path-accumulated unwrapped distance (which
+                                    # random-walk drifts over generations and
+                                    # inverts the lambda ordering). Use min-image.
+                                    sdx, sdy = delta(positions[0, 0], positions[0, 1],
+                                                     positions[j, 0], positions[j, 1], L, periodic)
+                                    disp = np.sqrt(sdx * sdx + sdy * sdy)
                                     if disp > max_disp:
                                         max_disp = disp
                                     if uy < uymin:

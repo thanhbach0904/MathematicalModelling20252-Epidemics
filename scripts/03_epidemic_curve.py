@@ -32,9 +32,11 @@ def main():
     res_hub = run_batch(N, "hub", args.lam, args.runs, n_jobs=args.jobs)
     res_none = run_batch(N, "none", 0.0, args.runs, n_jobs=args.jobs)
 
-    c_strong = mean_epidemic_curve(res_strong, condition="outbreak")
-    c_hub = mean_epidemic_curve(res_hub, condition="outbreak")
-    c_none = mean_epidemic_curve(res_none, condition="outbreak")
+    # Paper averages over ALL runs ("averaging over 1000 Monte Carlo runs",
+    # p.845), i.e. fizzled epidemics included -- not just outbreaks.
+    c_strong = mean_epidemic_curve(res_strong, condition="all")
+    c_hub = mean_epidemic_curve(res_hub, condition="all")
+    c_none = mean_epidemic_curve(res_none, condition="all")
 
     curves = {
         fr"Strong ($\lambda={args.lam}$)":
