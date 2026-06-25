@@ -275,7 +275,7 @@ def plot_sars_secondary(centres, freq, savepath=None):
     fig, ax = plt.subplots(figsize=(6.2, 4.6))
     ax.bar(centres, freq, width=0.9, color="#b03a8c")
     ax.set_xlabel("number of direct secondary cases")
-    ax.set_ylabel("frequency")
+    ax.set_ylabel("number")
     ax.set_title("SARS Singapore secondary cases (~Fig. 14, digitised)")
     fig.tight_layout()
     _save(fig, savepath)

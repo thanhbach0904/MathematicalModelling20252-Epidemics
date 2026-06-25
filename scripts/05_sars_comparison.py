@@ -32,7 +32,8 @@ def main():
     print(f"rho*pi*r0^2 = {args.density} -> N = {N} (paper uses N=477)")
 
     # --- Fig. 14: SARS secondary-case distribution (reference) ---
-    c_sars, f_sars = sars_data.sars_secondary_distribution()
+    # Paper plots raw counts ("number", y to 180), not a normalised frequency.
+    c_sars, f_sars = sars_data.sars_secondary_distribution(normalise=False)
     V.plot_sars_secondary(c_sars, f_sars,
                           savepath=B.fig("fig14_sars_secondary.png"))
 
