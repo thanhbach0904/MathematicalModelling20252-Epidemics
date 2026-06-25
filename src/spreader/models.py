@@ -30,18 +30,22 @@ RC_STRONG = 4.5          # continuum-percolation threshold (all superspreaders)
 RC_HUB = 3.2             # measured critical density at lambda = 1 (hub)
 
 
-def model_params(model, r0=CUTOFF_R0, L=BOX_L):
+def model_params(model, r0=CUTOFF_R0, L=BOX_L, alpha=2.0):
     """Return a dict of per-model parameters consumed by the simulator.
 
     ``model`` is one of ``"strong"``, ``"hub"`` or ``"none"`` (the last treats
     every individual as normal, used for lambda = 0 baselines).
+
+    ``alpha`` is the spatial decay exponent for *normal* individuals (paper
+    value 2). The superspreader exponents are unaffected: 0 for strong
+    (constant w within r0), 2 for hub (same shape, longer cutoff).
     """
     if model == "strong":
-        cutoff_n, exp_n, cutoff_s, exp_s = r0, 2.0, r0, 0.0
+        cutoff_n, exp_n, cutoff_s, exp_s = r0, alpha, r0, 0.0
     elif model == "hub":
-        cutoff_n, exp_n, cutoff_s, exp_s = r0, 2.0, HUB_FACTOR * r0, 2.0
+        cutoff_n, exp_n, cutoff_s, exp_s = r0, alpha, HUB_FACTOR * r0, 2.0
     elif model in ("none", "normal"):
-        cutoff_n, exp_n, cutoff_s, exp_s = r0, 2.0, r0, 2.0
+        cutoff_n, exp_n, cutoff_s, exp_s = r0, alpha, r0, alpha
     else:
         raise ValueError(f"unknown model {model!r}")
 

@@ -8,24 +8,24 @@ from .geometry import sample_positions
 from .simulator import run_single, seed_rng
 
 
-def _make_run(N, model, lam, seed, L=BOX_L):
+def _make_run(N, model, lam, seed, L=BOX_L, alpha=2.0):
     """Build the inputs for one run with reproducible RNG."""
     rng = np.random.default_rng(seed)
     positions = sample_positions(N, L, rng)
     is_super = (rng.random(N) < lam).astype(np.int8)
-    p = model_params(model, L=L)
+    p = model_params(model, L=L, alpha=alpha)
     return positions, is_super, p
 
 
 def _one_run(seed, N, model, lam, max_steps, perc_threshold, full, L=BOX_L,
-             periodic=True):
-    positions, is_super, p = _make_run(N, model, lam, seed, L=L)
+             periodic=True, gamma=GAMMA, alpha=2.0):
+    positions, is_super, p = _make_run(N, model, lam, seed, L=L, alpha=alpha)
     seed_rng(int(seed) & 0x7FFFFFFF)            # seed Numba's RNG per run
     (perc, new_counts, rf_curve, secondary,
      infector, unwrapped, state, n_steps) = run_single(
         positions, is_super,
         p["cutoff_n"], p["exp_n"], p["cutoff_s"], p["exp_s"],
-        W0, GAMMA, p["L"], p["n_cells"], p["cell_size"],
+        W0, gamma, p["L"], p["n_cells"], p["cell_size"],
         max_steps, perc_threshold, bool(periodic))
 
     total_infected = int(np.count_nonzero(state != 0))
@@ -48,7 +48,7 @@ def _one_run(seed, N, model, lam, max_steps, perc_threshold, full, L=BOX_L,
 
 def run_batch(N, model, lam, n_runs, max_steps=200, perc_threshold=None,
               n_jobs=-1, base_seed=0, full=False, verbose=False, L=BOX_L,
-              periodic=True):
+              periodic=True, gamma=GAMMA, alpha=2.0):
     """Run ``n_runs`` independent epidemics; return a list of result dicts.
 
     ``L`` sets the box side (default 10 r0, as in the paper). The percolation
@@ -66,7 +66,7 @@ def run_batch(N, model, lam, n_runs, max_steps=200, perc_threshold=None,
     seeds = base_seed + np.arange(n_runs)
     results = Parallel(n_jobs=n_jobs, verbose=5 if verbose else 0)(
         delayed(_one_run)(int(s), N, model, lam, max_steps, perc_threshold,
-                          full, L, periodic)
+                          full, L, periodic, gamma, alpha)
         for s in seeds
     )
     return results

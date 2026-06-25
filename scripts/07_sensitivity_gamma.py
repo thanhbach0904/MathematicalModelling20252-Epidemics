@@ -65,7 +65,7 @@ def main():
                     metrics = aggregate_metrics(res)
                     mse = float("nan")
                     if lam == MSE_LAMBDA and density == MSE_DENSITY:
-                        curve = mean_epidemic_curve(res)
+                        curve = mean_epidemic_curve(res, condition="all")
                         mse = mse_vs_sars(curve)
                         curves_for_fig[(model, gamma)] = curve
                         mse_for_fig[model][gamma] = mse
