@@ -46,10 +46,17 @@ def main():
     c_none = mean_epidemic_curve(res_none, condition="all")
 
     sars = sars_data.SARS_EPIDEMIC_CURVE
-    # scale model curves so their peak matches the SARS peak (shape comparison)
+    # Scale every model curve by ONE common factor (fit the hub-model peak --
+    # the paper's best fit -- to the SARS peak). A single factor preserves the
+    # relative magnitudes between models, so the no-superspreader (lambda=0)
+    # curve stays proportionally low and flat, as in the paper's Fig. 15. (Note:
+    # at rho*pi*r0^2=15 the lambda=0 case is below its percolation threshold, so
+    # most runs fizzle and its all-runs average is small.) Per-curve peak
+    # normalisation would wrongly inflate that broad lambda=0 epidemic to the
+    # data peak.
+    factor = (sars.max() / c_hub.max()) if c_hub.max() > 0 else 1.0
     def rescale(c):
-        m = c.max()
-        return c * (sars.max() / m) if m > 0 else c
+        return c * factor
 
     model_curves = {
         fr"Strong ($\lambda={args.lam}$)":
